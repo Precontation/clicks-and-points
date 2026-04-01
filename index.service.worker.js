@@ -4,20 +4,20 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1775009465|10175345252';
+const CACHE_VERSION = '1775009873|63295052';
 /** @type {string} */
 const CACHE_PREFIX = 'Clicks and Point-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 /** @type {string} */
-const OFFLINE_URL = 'Clicks and Points.offline.html';
+const OFFLINE_URL = 'index.offline.html';
 /** @type {boolean} */
 const ENSURE_CROSSORIGIN_ISOLATION_HEADERS = true;
 // Files that will be cached on load.
 /** @type {string[]} */
-const CACHED_FILES = ["Clicks and Points.html","Clicks and Points.js","Clicks and Points.offline.html","Clicks and Points.icon.png","Clicks and Points.apple-touch-icon.png","Clicks and Points.audio.worklet.js","Clicks and Points.audio.position.worklet.js"];
+const CACHED_FILES = ["index.html","index.js","index.offline.html","index.icon.png","index.apple-touch-icon.png","index.audio.worklet.js","index.audio.position.worklet.js"];
 // Files that we might not want the user to preload, and will only be cached on first load.
 /** @type {string[]} */
-const CACHEABLE_FILES = ["Clicks and Points.wasm","Clicks and Points.pck"];
+const CACHEABLE_FILES = ["index.wasm","index.pck"];
 const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
 
 self.addEventListener('install', (event) => {
