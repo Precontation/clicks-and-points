@@ -1,7 +1,10 @@
 # Clicks & Points
 [![Build Godot project for all platforms](https://github.com/Precontation/clicks-and-points/actions/workflows/build.yml/badge.svg)](https://github.com/Precontation/clicks-and-points/actions/workflows/build.yml) [![pages-build-deployment](https://github.com/Precontation/clicks-and-points/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/Precontation/clicks-and-points/actions/workflows/pages/pages-build-deployment)
 
-The sequel to [Click For Points](https://store.steampowered.com/app/2159370/Click_For_Points/)
+The sequel to [Click For Points](https://store.steampowered.com/app/2159370/Click_For_Points/).
+
+> [!IMPORTANT]
+> This project is still in beta! Expect some bugs, and everything is subject to change.
 
 ## Note
 This repo contains all Clicks & Points versions and hosts the web version, but DOES NOT INCLUDE THE SOURCE CODE.
