@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_KEY }}
+          token: ${{ secrets.DEPLOY_TOKEN }}
           lfs: true
           path: source
           persist-credentials: false
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_KEY }}
+          token: ${{ secrets.DEPLOY_TOKEN }}
           lfs: true
           path: source
           persist-credentials: false
@@ -83,7 +83,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_KEY }}
+          token: ${{ secrets.DEPLOY_TOKEN }}
           lfs: true
           path: source
           persist-credentials: false
@@ -122,7 +122,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_KEY }}
+          token: ${{ secrets.DEPLOY_TOKEN }}
           lfs: true
           path: source
           persist-credentials: false
