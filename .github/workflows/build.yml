@@ -7,51 +7,33 @@ env:
   PROJECT_PATH: source
 
 jobs:
-  export-windows:
-    name: Windows Export
+  export:
+    name: Export (${{ matrix.platform }})
     runs-on: ubuntu-24.04
     container:
       image: barichello/godot-ci:4.6.2
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            export_preset: "Windows Desktop"
+            artifact_name: "clicks-and-points.exe"
+          - platform: mac
+            export_preset: "macOS"
+            artifact_name: "clicks-and-points.zip"
+          - platform: linux
+            export_preset: "Linux"
+            artifact_name: "clicks-and-points.x86_64"
+          - platform: web
+            export_preset: "Web"
+            artifact_name: "index.html"
+
     steps:
-      - name: Checkout private source repo
-        uses: actions/checkout@v4
-        with:
-          repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_TOKEN }}
-          lfs: true
-          path: source
-          persist-credentials: false
-          fetch-depth: 1
-
-      - name: Setup
-        run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/
-          mkdir -v -p ~/.config/
-          mv /root/.config/godot ~/.config/godot || true
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable || true
-
-      - name: Windows Build
-        run: |
-          mkdir -v -p build/windows
-          EXPORT_DIR="$(readlink -f build)"
-          cd "$PROJECT_PATH"
-          godot --headless --verbose --export-release "Windows Desktop" "$EXPORT_DIR/windows/$EXPORT_NAME.exe"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows
-          path: build/windows
-
-  export-mac:
-    name: Mac Export
-    runs-on: ubuntu-24.04
-    container:
-      image: barichello/godot-ci:4.6.2
-    steps:
-      - name: Install fontconfig
+      - name: Install dependencies (Mac only)
+        if: matrix.platform == 'mac'
         run: apt-get update && apt-get install -y fontconfig
-        
+
       - name: Checkout private source repo
         uses: actions/checkout@v4
         with:
@@ -59,99 +41,37 @@ jobs:
           token: ${{ secrets.DEPLOY_TOKEN }}
           lfs: true
           path: source
-          persist-credentials: false
           fetch-depth: 1
 
-      - name: Setup
-        run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable || true
+      - name: Cache Godot import folder
+        uses: actions/cache@v4
+        with:
+          path: source/.godot/
+          key: ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
+          restore-keys: |
+            ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-
 
-      - name: Mac Build
+      - name: Setup Templates
         run: |
-          mkdir -v -p build/mac
-          EXPORT_DIR="$(readlink -f build)"
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          cp -r /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+
+      - name: Build
+        run: |
+          mkdir -p build/${{ matrix.platform }}
           cd "$PROJECT_PATH"
-          godot --headless --verbose --export-release "macOS" "$EXPORT_DIR/mac/$EXPORT_NAME.zip"
+          godot --headless --verbose --export-release "${{ matrix.export_preset }}" "../build/${{ matrix.platform }}/${{ matrix.artifact_name }}"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mac
-          path: build/mac
-
-  export-linux:
-    name: Linux Export
-    runs-on: ubuntu-24.04
-    container:
-      image: barichello/godot-ci:4.6.2
-    steps:
-      - name: Checkout private source repo
-        uses: actions/checkout@v4
-        with:
-          repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_TOKEN }}
-          lfs: true
-          path: source
-          persist-credentials: false
-          fetch-depth: 1
-
-      - name: Setup
-        run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable || true
-
-      - name: Linux Build
-        run: |
-          mkdir -v -p build/linux
-          EXPORT_DIR="$(readlink -f build)"
-          cd "$PROJECT_PATH"
-          godot --headless --verbose --export-release "Linux" "$EXPORT_DIR/linux/$EXPORT_NAME.x86_64"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux
-          path: build/linux
-
-  export-web:
-    name: Web Export
-    runs-on: ubuntu-24.04
-    container:
-      image: barichello/godot-ci:4.6.2
-    steps:
-      - name: Checkout private source repo
-        uses: actions/checkout@v4
-        with:
-          repository: Precontation/clicks-and-points-source
-          token: ${{ secrets.DEPLOY_TOKEN }}
-          lfs: true
-          path: source
-          persist-credentials: false
-          fetch-depth: 1
-
-      - name: Setup
-        run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable || true
-
-      - name: Web Build
-        run: |
-          mkdir -v -p build/web
-          EXPORT_DIR="$(readlink -f build)"
-          cd "$PROJECT_PATH"
-          godot --headless --verbose --export-release "Web" "$EXPORT_DIR/web/index.html"
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web
-          path: build/web
+          name: ${{ matrix.platform }}
+          path: build/${{ matrix.platform }}
 
   deploy-web:
     name: Deploy Web to GitHub Pages
     runs-on: ubuntu-24.04
-    needs: export-web
+    needs: export
     permissions:
       contents: write
     steps:
@@ -165,7 +85,7 @@ jobs:
           path: build/web
 
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@releases/v4
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
           folder: build/web
