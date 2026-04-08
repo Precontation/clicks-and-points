@@ -1,4 +1,4 @@
-name: Build Godot Project and Push to Web
+name: Build Godot project for all platforms
 on: workflow_dispatch
 
 env:
