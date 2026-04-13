@@ -19,13 +19,13 @@ jobs:
         include:
           - platform: windows
             export_preset: "Windows Desktop"
-            artifact_name: ${{ env.GODOT_VERSION }}.exe
+            artifact_name: "clicks-and-points.exe"
           - platform: mac
             export_preset: "macOS"
-            artifact_name: ${{ env.GODOT_VERSION }}.zip
+            artifact_name: "clicks-and-points.zip"
           - platform: linux
             export_preset: "Linux"
-            artifact_name: ${{ env.GODOT_VERSION }}.x86_64
+            artifact_name: "clicks-and-points.x86_64"
           - platform: web
             export_preset: "Web"
             artifact_name: "index.html"
