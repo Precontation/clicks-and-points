@@ -69,6 +69,48 @@ jobs:
           name: ${{ matrix.platform }}
           path: build/${{ matrix.platform }}
 
+  mac-sign:
+  name: Build & Sign macOS
+  runs-on: macos-latest
+  needs: export
+
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Download mac artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: mac
+        path: build/mac
+
+    - name: Import certificate
+      run: |
+        echo "$CERT_P12" | base64 --decode > cert.p12
+        security create-keychain -p "" build.keychain
+        security import cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+        security list-keychains -s build.keychain
+        security unlock-keychain -p "" build.keychain
+
+    - name: Codesign
+      run: |
+        codesign --force --deep --options runtime \
+          --sign "$SIGN_IDENTITY" \
+          build/mac/*.app
+
+    - name: Notarize
+      run: |
+        ditto -c -k --keepParent build/mac/*.app app.zip
+        xcrun notarytool submit app.zip \
+          --apple-id "$AC_USERNAME" \
+          --team-id "$AC_TEAMID" \
+          --password "$AC_PASSWORD" \
+          --wait
+
+    - name: Staple
+      run: |
+        xcrun stapler staple build/mac/*.app
+
   deploy-web:
     name: Deploy Web to GitHub Pages
     runs-on: ubuntu-24.04
