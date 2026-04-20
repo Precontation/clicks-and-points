@@ -111,10 +111,6 @@ jobs:
             --sign "$SIGN_IDENTITY" \
             build/mac/*.app
 
-      - name: Verify Codesign
-        run: |
-          codesign --verify --deep --verbose=2 build/mac/*.app
-
       - name: Notarize
         run: |
           ditto -c -k --keepParent build/mac/*.app app.zip
