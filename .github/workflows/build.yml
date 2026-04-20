@@ -19,13 +19,13 @@ jobs:
         include:
           - platform: windows
             export_preset: "Windows Desktop"
-            artifact_name: "clicks-and-points.exe"
+            artifact_name: "Clicks & Points.exe"
           - platform: mac
             export_preset: "macOS"
-            artifact_name: "clicks-and-points.app"
+            artifact_name: "Clicks & Points.app"
           - platform: linux
             export_preset: "Linux"
-            artifact_name: "clicks-and-points.x86_64"
+            artifact_name: "Clicks & Points.x86_64"
           - platform: web
             export_preset: "Web"
             artifact_name: "index.html"
