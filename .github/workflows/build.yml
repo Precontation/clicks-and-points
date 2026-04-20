@@ -66,9 +66,11 @@ jobs:
       - name: Create p12 file and Install App Store Connect API Key (Mac only)
         if: matrix.platform == 'mac'
         run: |
-          echo '${{ secrets.MACOS_CERT_P12 }}' > cert.p12
+          echo '${{ secrets.MACOS_CERT_P12_BASE64 }}' | base64 -d > cert.p12
           mkdir -p private_keys/
-          echo '${{ secrets.APPLE_P8_FILE }}' > private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          cat > private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 <<'EOF'
+          ${{ secrets.APPLE_P8_FILE }}
+          EOF
 
       - name: Sign and Notarize (Mac only)
         if: matrix.platform == 'mac'
