@@ -20,9 +20,9 @@ jobs:
           - platform: windows
             export_preset: "Windows Desktop"
             artifact_name: "clicks-and-points.exe"
-          - platform: mac
+          - platform: mac-unsigned
             export_preset: "macOS"
-            artifact_name: "clicks-and-points.zip"
+            artifact_name: "clicks-and-points-mac-unsigned.zip"
           - platform: linux
             export_preset: "Linux"
             artifact_name: "clicks-and-points.x86_64"
@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Install dependencies (Mac only)
-        if: matrix.platform == 'mac'
+        if: matrix.platform == 'mac-unsigned'
         run: apt-get update && apt-get install -y fontconfig
 
       - name: Checkout private source repo
@@ -81,7 +81,7 @@ jobs:
       - name: Download mac artifact
         uses: actions/download-artifact@v4
         with:
-          name: mac
+          name: mac-unsigned
           path: build/mac
 
       - name: Import certificate
@@ -91,6 +91,9 @@ jobs:
           security import cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
           security list-keychains -s build.keychain
           security unlock-keychain -p "" build.keychain
+
+      - name: Unzip mac artifact
+        run: unzip build/mac/*.zip -d build/mac
 
       - name: Codesign
         run: |
@@ -110,6 +113,12 @@ jobs:
       - name: Staple
         run: |
           xcrun stapler staple build/mac/*.app
+
+      - name: Upload signed macOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: build/mac
 
   deploy-web:
     name: Deploy Web to GitHub Pages
