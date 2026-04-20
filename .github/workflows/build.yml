@@ -63,16 +63,14 @@ jobs:
           cd "$PROJECT_PATH"
           godot --headless --verbose --export-release "${{ matrix.export_preset }}" "../build/${{ matrix.platform }}/${{ matrix.artifact_name }}"
       
-      - name: Create p12 file and install App Store Connect API key (Mac only)
+      - name: Create p12 file and Install App Store Connect API Key (Mac only)
         if: matrix.platform == 'mac'
-        env:
-          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
-          APPLE_P8_FILE: ${{ secrets.APPLE_P8_FILE }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
         run: |
-          printf '%s' "$MACOS_CERT_P12_BASE64" | base64 -d > cert.p12
-          mkdir -p private_keys
-          printf '%s' "$APPLE_P8_FILE" > "private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
+          echo '${{ secrets.MACOS_CERT_P12_BASE64 }}' | base64 -d > cert.p12
+          mkdir -p private_keys/
+          cat > private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 <<'EOF'
+          ${{ secrets.APPLE_P8_FILE }}
+          EOF
 
       - name: Sign and Notarize (Mac only)
         if: matrix.platform == 'mac'
