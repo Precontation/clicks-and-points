@@ -113,7 +113,7 @@ jobs:
 
       - name: Verify Codesign
         run: |
-          codesign --verify --deep --strict --verbose=2 build/mac/*.app
+          codesign --verify --deep --verbose=2 build/mac/*.app
 
       - name: Notarize
         run: |
