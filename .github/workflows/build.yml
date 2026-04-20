@@ -95,9 +95,12 @@ jobs:
         run: |
           echo "$CERT_P12" | base64 --decode > cert.p12
           security create-keychain -p "" build.keychain
-          security import cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
-          security list-keychains -s build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
           security unlock-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -d user -s build.keychain login.keychain-db
+          security default-keychain -d user -s build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
       - name: Unzip mac artifact
         run: unzip build/mac/*.zip -d build/mac
@@ -107,6 +110,10 @@ jobs:
           codesign --force --deep --options runtime \
             --sign "$SIGN_IDENTITY" \
             build/mac/*.app
+
+      - name: Verify Codesign
+        run: |
+          codesign --verify --deep --strict --verbose=2 build/mac/*.app
 
       - name: Notarize
         run: |
