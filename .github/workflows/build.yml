@@ -85,6 +85,7 @@ jobs:
           p12_file: cert.p12
           p12_password: ${{ secrets.CERT_PASSWORD }}
           app_store_connect_api_key_json_file: app_store_connect_key.json
+          sign_args: "--code-signature-flags=runtime"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
