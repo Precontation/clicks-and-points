@@ -31,8 +31,8 @@ jobs:
             artifact_name: "index.html"
 
     steps:
-      - name: Install dependencies (Mac only)
-        if: matrix.platform == 'mac'
+      - name: Install dependencies
+        if: matrix.platform != 'windows'
         run: apt-get update && apt-get install -y fontconfig
 
       - name: Checkout private source repo
@@ -62,7 +62,7 @@ jobs:
           mkdir -p build/${{ matrix.platform }}
           cd "$PROJECT_PATH"
           godot --headless --verbose --export-release "${{ matrix.export_preset }}" "../build/${{ matrix.platform }}/${{ matrix.artifact_name }}"
-      
+
       - name: Create p12 file (Mac only)
         if: matrix.platform == 'mac'
         run: |
