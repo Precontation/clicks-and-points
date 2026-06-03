@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: source/.godot/
-          key: ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
           restore-keys: |
             ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-
 
@@ -91,7 +91,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: source/.godot/
-          key: ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
+          key: ${{ runner.os }}-mac-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
           restore-keys: |
             ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-
 
