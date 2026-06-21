@@ -3,7 +3,7 @@ name: Build Godot project for all platforms
 on: workflow_dispatch
 
 env:
-  GODOT_VERSION: 4.7
+  GODOT_VERSION: 4.6.2
   EXPORT_NAME: clicks-and-points
   REPO_TO_CLONE: Precontation/clicks-and-points-source
   PROJECT_PATH: source
@@ -13,7 +13,7 @@ jobs:
     name: Export (${{ matrix.platform }})
     runs-on: ubuntu-24.04
     container:
-        image: barichello/godot-ci:4.7-stable
+        image: barichello/godot-ci:4.6.2
 
     strategy:
       fail-fast: false
