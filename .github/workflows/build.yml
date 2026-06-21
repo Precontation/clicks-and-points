@@ -1,6 +1,7 @@
 name: Build Godot project for all platforms
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
 
 env:
   GODOT_VERSION: 4.6.2
@@ -12,27 +13,31 @@ jobs:
   export:
     name: Export (${{ matrix.platform }})
     runs-on: ubuntu-24.04
+
     container:
-        image: barichello/godot-ci:4.6.2
+      image: barichello/godot-ci:4.6.2
 
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: windows
-            export_preset: "Windows Desktop"
-            artifact_name: "Clicks & Points.exe"
+            export_preset: Windows Desktop
+            artifact_name: Clicks & Points.exe
+
           - platform: linux
-            export_preset: "Linux"
-            artifact_name: "Clicks & Points.x86_64"
+            export_preset: Linux
+            artifact_name: Clicks & Points.x86_64
+
           - platform: web
-            export_preset: "Web"
-            artifact_name: "index.html"
+            export_preset: Web
+            artifact_name: index.html
 
     steps:
       - name: Install dependencies
-        if: matrix.platform != 'windows'
-        run: apt-get update && apt-get install -y fontconfig
+        run: |
+          apt-get update
+          apt-get install -y fontconfig
 
       - name: Checkout private source repo
         uses: actions/checkout@v4
@@ -47,14 +52,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: source/.godot/
-          key: ${{ runner.os }}-${{ matrix.platform }}-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
-          restore-keys: |
-            ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-
+          key: >-
+            v2-${{ runner.os }}-${{ matrix.platform }}-godot-${{
+            env.GODOT_VERSION }}-${{
+            hashFiles(
+              'source/project.godot',
+              'source/export_presets.cfg',
+              'source/**/*.gd',
+              'source/**/*.tres',
+              'source/**/*.tscn',
+              'source/**/*.import'
+            ) }}
 
-      - name: Setup Templates
+      - name: Setup export templates
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-          cp -r /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          cp -r \
+            "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/." \
+            "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+
       - name: Prepare web export
         if: matrix.platform == 'web'
         working-directory: source
@@ -62,27 +78,42 @@ jobs:
           sed -i '/^DiscordManager=/d' project.godot
           sed -i '/^DiscordRPCLoader=/d' project.godot
 
+      - name: Import project
+        working-directory: source
+        run: |
+          godot --headless --editor --quit
+
       - name: Build
         run: |
-          mkdir -p build/${{ matrix.platform }}
+          mkdir -p "build/${{ matrix.platform }}"
           cd "$PROJECT_PATH"
-          godot --headless --verbose --export-release "${{ matrix.export_preset }}" "../build/${{ matrix.platform }}/${{ matrix.artifact_name }}"
 
-      - name: Upload Artifact
+          godot \
+            --headless \
+            --verbose \
+            --export-release \
+            "${{ matrix.export_preset }}" \
+            "../build/${{ matrix.platform }}/${{ matrix.artifact_name }}"
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}
           path: build/${{ matrix.platform }}
+          if-no-files-found: error
 
   export-mac:
     name: Export Mac
     runs-on: ubuntu-24.04
+
     container:
       image: barichello/godot-ci:4.6.2
 
     steps:
       - name: Install dependencies
-        run: apt-get update && apt-get install -y fontconfig
+        run: |
+          apt-get update
+          apt-get install -y fontconfig
 
       - name: Checkout private source repo
         uses: actions/checkout@v4
@@ -97,32 +128,54 @@ jobs:
         uses: actions/cache@v4
         with:
           path: source/.godot/
-          key: ${{ runner.os }}-mac-godot-${{ env.GODOT_VERSION }}-${{ hashFiles('source/project.godot') }}
-          restore-keys: |
-            ${{ runner.os }}-godot-${{ env.GODOT_VERSION }}-
+          key: >-
+            v2-${{ runner.os }}-mac-godot-${{
+            env.GODOT_VERSION }}-${{
+            hashFiles(
+              'source/project.godot',
+              'source/export_presets.cfg',
+              'source/**/*.gd',
+              'source/**/*.tres',
+              'source/**/*.tscn',
+              'source/**/*.import'
+            ) }}
 
-      - name: Setup Templates
+      - name: Setup export templates
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-          cp -r /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          cp -r \
+            "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/." \
+            "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+
+      - name: Import project
+        working-directory: source
+        run: |
+          godot --headless --editor --quit
 
       - name: Build Mac
         run: |
           mkdir -p build/mac
           cd "$PROJECT_PATH"
-          godot --headless --verbose --export-release "macOS" "../build/mac/Clicks & Points.app"
 
-      - name: Create p12 file
+          godot \
+            --headless \
+            --verbose \
+            --export-release \
+            "macOS" \
+            "../build/mac/Clicks & Points.app"
+
+      - name: Create certificate file
         run: |
-          echo '${{ secrets.MACOS_CERT_P12_BASE64 }}' | base64 -d > cert.p12
+          echo '${{ secrets.MACOS_CERT_P12_BASE64 }}' \
+            | base64 -d > cert.p12
 
-      - name: Write App Store Connect JSON key
+      - name: Write App Store Connect key
         run: |
           cat > app_store_connect_key.json <<'EOF'
           ${{ secrets.APP_STORE_CONNECT_API_KEY_JSON }}
           EOF
 
-      - name: Sign and Notarize
+      - name: Sign and notarize
         uses: indygreg/apple-code-sign-action@v1
         with:
           input_path: build/mac/Clicks & Points.app
@@ -131,18 +184,20 @@ jobs:
           p12_file: cert.p12
           p12_password: ${{ secrets.CERT_PASSWORD }}
           app_store_connect_api_key_json_file: app_store_connect_key.json
-          sign_args: "--code-signature-flags=runtime"
+          sign_args: --code-signature-flags=runtime
 
-      - name: Upload Mac Artifact
+      - name: Upload Mac artifact
         uses: actions/upload-artifact@v4
         with:
           name: mac
           path: build/mac
+          if-no-files-found: error
 
   deploy-web:
     name: Deploy Web to GitHub Pages
     runs-on: ubuntu-24.04
     needs: export
+
     permissions:
       contents: write
 
