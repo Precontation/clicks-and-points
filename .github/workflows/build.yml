@@ -103,7 +103,7 @@ jobs:
           if-no-files-found: error
 
   export-mac:
-    name: Export Mac
+    name: Export (mac)
     runs-on: ubuntu-24.04
 
     container:
