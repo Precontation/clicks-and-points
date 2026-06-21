@@ -55,6 +55,12 @@ jobs:
         run: |
           mkdir -p ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
           cp -r /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+      - name: Prepare web export
+        if: matrix.platform == 'web'
+        working-directory: source
+        run: |
+          sed -i '/^DiscordManager=/d' project.godot
+          sed -i '/^DiscordRPCLoader=/d' project.godot
 
       - name: Build
         run: |
