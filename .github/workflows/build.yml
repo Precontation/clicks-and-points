@@ -71,13 +71,6 @@ jobs:
             "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/." \
             "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
 
-      - name: Prepare web export
-        if: matrix.platform == 'web'
-        working-directory: source
-        run: |
-          sed -i '/^DiscordManager=/d' project.godot
-          sed -i '/^DiscordRPCLoader=/d' project.godot
-
       - name: Import project
         working-directory: source
         run: |
@@ -113,7 +106,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y fontconfig
+          apt-get install -y fontconfig zip
 
       - name: Checkout private source repo
         uses: actions/checkout@v4
@@ -186,11 +179,16 @@ jobs:
           app_store_connect_api_key_json_file: app_store_connect_key.json
           sign_args: --code-signature-flags=runtime
 
+      - name: Package Mac app
+        run: |
+          cd build/mac
+          zip -qry "Clicks & Points-macOS.zip" "Clicks & Points.app"
+
       - name: Upload Mac artifact
         uses: actions/upload-artifact@v4
         with:
           name: mac
-          path: build/mac
+          path: build/mac/Clicks & Points-macOS.zip
           if-no-files-found: error
 
   deploy-web:
