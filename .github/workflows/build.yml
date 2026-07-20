@@ -81,12 +81,24 @@ jobs:
           mkdir -p "build/${{ matrix.platform }}"
           cd "$PROJECT_PATH"
 
+          if [ "${{ matrix.platform }}" = "web" ]; then
+            OUTPUT_NAME="clicks-and-points-${{ github.run_id }}.html"
+          else
+            OUTPUT_NAME="${{ matrix.artifact_name }}"
+          fi
+
           godot \
             --headless \
             --verbose \
             --export-release \
             "${{ matrix.export_preset }}" \
-            "../build/${{ matrix.platform }}/${{ matrix.artifact_name }}"
+            "../build/${{ matrix.platform }}/${OUTPUT_NAME}"
+
+          if [ "${{ matrix.platform }}" = "web" ]; then
+            cp \
+              "../build/web/clicks-and-points-${{ github.run_id }}.html" \
+              "../build/web/index.html"
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
