@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: barichello/godot-ci:4.6.2
+      image: barichello/godot-ci:4.7.1
 
     strategy:
       fail-fast: false
@@ -32,6 +32,10 @@ jobs:
           - platform: web
             export_preset: Web
             artifact_name: index.html
+
+          - platform: android
+            export_preset: Android
+            artifact_name: Clicks & Points.apk
 
     steps:
       - name: Install dependencies
