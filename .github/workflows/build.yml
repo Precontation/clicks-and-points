@@ -235,7 +235,10 @@ jobs:
       - name: Import project
         working-directory: source
         run: |
-          godot --headless --import
+          godot \
+            --headless \
+            --rendering-method gl_compatibility \
+            --import
 
       - name: Build Mac
         run: |
