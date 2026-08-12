@@ -227,13 +227,13 @@ jobs:
       - name: Package Mac app
         run: |
           cd build/mac
-          zip -qry "Clicks & Points-macOS.zip" "Clicks & Points.app"
+          zip -qry "mac.zip" "Clicks & Points.app"
 
       - name: Upload Mac artifact
         uses: actions/upload-artifact@v7
         with:
-          name: mac
-          path: build/mac/Clicks & Points-macOS.zip
+          path: build/mac/mac.zip
+          archive: false
           if-no-files-found: error
 
   deploy-web:
