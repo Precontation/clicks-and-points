@@ -68,12 +68,29 @@ jobs:
               'source/**/*.import'
             ) }}
 
-      - name: Setup export templates
+      - name: Setup Godot
         run: |
           mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$HOME/.config/godot"
+      
           cp -r \
             "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/." \
             "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+      
+          cp -r \
+            "/root/.config/godot/." \
+            "$HOME/.config/godot/"
+
+      - name: Setup Android SDK
+        if: matrix.platform == 'android'
+        run: |
+          sdkmanager --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "build-tools;35.0.1" \
+            "platforms;android-35" \
+            "cmdline-tools;latest" \
+            "cmake;3.10.2.4988404" \
+            "ndk;28.1.13356709"
 
       - name: Import project
         working-directory: source
