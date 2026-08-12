@@ -143,7 +143,7 @@ jobs:
 
   export-mac:
     name: Export (mac)
-    runs-on: macos-26-intel
+    runs-on: macos-26
 
     steps:
       - name: Checkout private source repo
@@ -233,16 +233,54 @@ jobs:
           actool --version
 
       - name: Build Mac
+        shell: bash
         run: |
           mkdir -p build/mac
           cd "$PROJECT_PATH"
+
+          set +e
 
           godot \
             --headless \
             --verbose \
             --export-release \
             "macOS" \
-            "../build/mac/Clicks & Points.app"
+            "../build/mac/Clicks & Points.app" \
+            2>&1 | tee "$RUNNER_TEMP/godot-export.log"
+
+          GODOT_EXIT=${PIPESTATUS[0]}
+
+          set -e
+
+          APP="../build/mac/Clicks & Points.app"
+          PLIST="$APP/Contents/Info.plist"
+
+          # Make sure Godot actually completed the export.
+          grep -q "\[ DONE \].*export" "$RUNNER_TEMP/godot-export.log"
+
+          # Validate the generated app.
+          test -d "$APP"
+          test -f "$PLIST"
+          plutil -lint "$PLIST"
+
+          EXECUTABLE="$(plutil -extract CFBundleExecutable raw "$PLIST")"
+          test -f "$APP/Contents/MacOS/$EXECUTABLE"
+
+          # Verify the Liquid Glass icon actually got compiled.
+          test -f "$APP/Contents/Resources/Assets.car"
+          plutil -extract CFBundleIconName raw "$PLIST"
+
+          if [ "$GODOT_EXIT" -eq 0 ]; then
+            exit 0
+          fi
+
+          if [ "$GODOT_EXIT" -eq 134 ]; then
+            echo "::warning::Godot 4.7.1 crashed during shutdown after completing and validating the macOS export."
+            exit 0
+          fi
+
+          echo "Godot failed with unexpected exit code $GODOT_EXIT"
+          exit "$GODOT_EXIT"
 
       - name: Create certificate file
         run: |
