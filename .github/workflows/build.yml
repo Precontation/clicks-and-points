@@ -1,4 +1,4 @@
-name: Build Godot project for all platforms
+name: Build Godot project
 
 on:
   workflow_dispatch:
