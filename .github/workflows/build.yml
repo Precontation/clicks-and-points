@@ -195,7 +195,7 @@ jobs:
         with:
           path: source/.godot/
           key: >-
-            v2-${{ runner.os }}-godot-${{
+            v2-${{ runner.os }}-mac-godot-${{
             vars.GODOT_VERSION }}-${{
             hashFiles(
               'source/project.godot',
@@ -370,7 +370,7 @@ jobs:
         with:
           path: source/.godot/
           key: >-
-            v2-${{ runner.os }}-godot-${{
+            v2-${{ runner.os }}-ios-godot-${{
             vars.GODOT_VERSION }}-${{
             hashFiles(
               'source/project.godot',
@@ -441,44 +441,48 @@ jobs:
 
           set +e
 
+          # Godot warns that spaces in an exported iOS project name can
+          # corrupt the generated Xcode project. The display name of the app
+          # still comes from the export preset; this is only the build name.
           godot \
             --headless \
             --verbose \
             --export-release \
             "iOS" \
-            "../build/iOS/Clicks & Points.ipa" \
+            "../build/iOS/ClicksAndPoints.ipa" \
             2>&1 | tee "$RUNNER_TEMP/godot-export.log"
 
           GODOT_EXIT=${PIPESTATUS[0]}
 
           set -e
 
-          APP="../build/mac/Clicks & Points.ipa"
-          PLIST="$APP/Contents/Info.plist"
+          IPA="../build/iOS/ClicksAndPoints.ipa"
 
-          # Make sure Godot actually completed the export.
-          grep -q "\[ DONE \].*export" "$RUNNER_TEMP/godot-export.log"
-
-          # Validate the generated app.
-          test -d "$APP"
-          test -f "$PLIST"
-          plutil -lint "$PLIST"
-
-          EXECUTABLE="$(plutil -extract CFBundleExecutable raw "$PLIST")"
-          test -f "$APP/Contents/MacOS/$EXECUTABLE"
-
-          # Verify the Liquid Glass icon actually got compiled.
-          test -f "$APP/Contents/Resources/Assets.car"
-          plutil -extract CFBundleIconName raw "$PLIST"
-
-          if [ "$GODOT_EXIT" -eq 0 ]; then
-            exit 0
+          # Godot can print [ DONE ] and then report that the preset failed,
+          # so don't use [ DONE ] by itself as proof of a successful export.
+          if grep -q 'Project export for preset "iOS" failed' "$RUNNER_TEMP/godot-export.log"; then
+            echo "Godot reported that the iOS export failed."
+            exit 1
           fi
 
-          if [ "$GODOT_EXIT" -eq 134 ]; then
-            echo "::warning::Godot 4.7.1 crashed during shutdown after completing and validating the macOS export."
+          # An IPA is a ZIP archive containing Payload/<app>.app.
+          test -f "$IPA"
+          unzip -tq "$IPA"
+          unzip -Z1 "$IPA" | grep -Eq '^Payload/[^/]+\.app/Info\.plist$'
+
+          if [ "$GODOT_EXIT" -eq 0 ] || [ "$GODOT_EXIT" -eq 134 ]; then
+            if [ "$GODOT_EXIT" -eq 134 ]; then
+              echo "::warning::Godot 4.7.1 crashed during shutdown after producing a valid iOS IPA."
+            fi
             exit 0
           fi
 
           echo "Godot failed with unexpected exit code $GODOT_EXIT"
           exit "$GODOT_EXIT"
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: iOS
+          path: build/iOS/ClicksAndPoints.ipa
+          if-no-files-found: error
