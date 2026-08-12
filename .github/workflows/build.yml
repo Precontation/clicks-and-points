@@ -474,16 +474,21 @@ jobs:
 
           security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
           PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")"
-          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")"
 
           PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           INSTALLED_PROFILE="$PROFILES_DIR/$PROFILE_UUID.mobileprovision"
           mkdir -p "$PROFILES_DIR"
           cp "$PROFILE_PATH" "$INSTALLED_PROFILE"
 
-          # A non-empty profile specifier makes Godot generate an Xcode project
-          # with manual Release signing. The local preset can remain blank.
-          echo "GODOT_APPLE_PLATFORM_PROFILE_SPECIFIER_RELEASE=$PROFILE_NAME" >> "$GITHUB_ENV"
+          # Use the UUID instead of the profile name. Besides being unambiguous,
+          # this avoids XML-breaking characters such as the ampersand in the
+          # profile name "Clicks & Points" when Godot creates export_options.plist.
+          #
+          # Godot 4.7.1 accidentally reads the DEBUG UUID environment variable
+          # for Release exports, so set both names. The Release name keeps this
+          # working after that upstream typo is fixed.
+          echo "GODOT_APPLE_PLATFORM_PROVISIONING_PROFILE_UUID_DEBUG=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "GODOT_APPLE_PLATFORM_PROVISIONING_PROFILE_UUID_RELEASE=$PROFILE_UUID" >> "$GITHUB_ENV"
           echo "IOS_INSTALLED_PROFILE=$INSTALLED_PROFILE" >> "$GITHUB_ENV"
 
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
