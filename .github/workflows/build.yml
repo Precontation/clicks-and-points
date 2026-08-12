@@ -142,17 +142,9 @@ jobs:
 
   export-mac:
     name: Export (mac)
-    runs-on: ubuntu-24.04
-
-    container:
-      image: barichello/godot-ci:${{ vars.GODOT_VERSION }}
+    runs-on: macos-26
 
     steps:
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y fontconfig zip
-
       - name: Checkout private source repo
         uses: actions/checkout@v7
         with:
@@ -178,12 +170,45 @@ jobs:
               'source/**/*.import'
             ) }}
 
+      - name: Setup Godot
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot"
+          mkdir -p "$RUNNER_TEMP/bin"
+
+          curl -fL \
+            "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=macos.universal.zip&platform=macos.universal" \
+            -o "$RUNNER_TEMP/godot.zip"
+
+          ditto -x -k "$RUNNER_TEMP/godot.zip" "$RUNNER_TEMP/godot"
+
+          ln -s \
+            "$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot" \
+            "$RUNNER_TEMP/bin/godot"
+
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
       - name: Setup export templates
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          cp -r \
-            "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/." \
-            "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          curl -fL \
+            "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=export_templates.tpz&platform=templates" \
+            -o "$RUNNER_TEMP/templates.tpz"
+
+          mkdir -p "$RUNNER_TEMP/templates"
+          ditto -x -k "$RUNNER_TEMP/templates.tpz" "$RUNNER_TEMP/templates"
+
+          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
+
+      - name: Setup actool
+        run: |
+          ACTOOL_PATH="$(xcrun --find actool)"
+
+          ln -s "$ACTOOL_PATH" "$RUNNER_TEMP/bin/actool"
+
+          godot --version
+          actool --version
 
       - name: Import project
         working-directory: source
@@ -205,7 +230,7 @@ jobs:
       - name: Create certificate file
         run: |
           echo '${{ secrets.MACOS_CERT_P12_BASE64 }}' \
-            | base64 -d > cert.p12
+            | base64 -D > cert.p12
 
       - name: Write App Store Connect key
         run: |
