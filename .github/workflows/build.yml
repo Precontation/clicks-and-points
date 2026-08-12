@@ -73,11 +73,11 @@ jobs:
         run: |
           mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$HOME/.config/godot"
-      
+
           cp -r \
             "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable/." \
             "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
-      
+
           cp -r \
             "/root/.config/godot/." \
             "$HOME/.config/godot/"
@@ -121,12 +121,22 @@ jobs:
             OUTPUT_NAME="${{ matrix.artifact_name }}"
           fi
 
-          godot \
-            --headless \
-            --verbose \
-            --export-release \
-            "${{ matrix.export_preset }}" \
-            "../build/${{ matrix.platform }}/${OUTPUT_NAME}"
+          if [ "${{ matrix.platform }}" = "android" ]; then
+            godot \
+              --headless \
+              --verbose \
+              --install-android-build-template \
+              --export-release \
+              "${{ matrix.export_preset }}" \
+              "../build/${{ matrix.platform }}/${OUTPUT_NAME}"
+          else
+            godot \
+              --headless \
+              --verbose \
+              --export-release \
+              "${{ matrix.export_preset }}" \
+              "../build/${{ matrix.platform }}/${OUTPUT_NAME}"
+          fi
 
           if [ "${{ matrix.platform }}" = "web" ]; then
             cp \
@@ -140,6 +150,31 @@ jobs:
           name: ${{ matrix.platform }}
           path: build/${{ matrix.platform }}
           if-no-files-found: error
+
+  deploy-web:
+    name: Deploy Web to GitHub Pages
+    runs-on: ubuntu-24.04
+    needs: export
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v7
+
+      - name: Download web artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: web
+          path: build/web
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: build/web
+          clean: true
 
   export-mac:
     name: Export (mac)
@@ -160,7 +195,7 @@ jobs:
         with:
           path: source/.godot/
           key: >-
-            v2-${{ runner.os }}-mac-godot-${{
+            v2-${{ runner.os }}-godot-${{
             vars.GODOT_VERSION }}-${{
             hashFiles(
               'source/project.godot',
@@ -178,7 +213,7 @@ jobs:
           path: |
             ${{ env.GODOT_INSTALL_DIR }}/godot
             ~/Library/Application Support/Godot/export_templates/${{ vars.GODOT_VERSION }}.stable
-          key: mac-godot-${{ vars.GODOT_VERSION }}
+          key: godot-${{ vars.GODOT_VERSION }}
 
       - name: Setup Godot
         if: steps.cache-godot.outputs.cache-hit != 'true'
@@ -212,7 +247,7 @@ jobs:
 
           mkdir -p "$TEMPLATE_DIR"
           cp -R "${{ env.GODOT_INSTALL_DIR }}/templates/templates/." "$TEMPLATE_DIR/"
-          
+
       - name: Add Godot to PATH
         run: |
           mkdir -p "${{ env.GODOT_INSTALL_DIR }}/bin"
@@ -316,27 +351,134 @@ jobs:
           archive: false
           if-no-files-found: error
 
-  deploy-web:
-    name: Deploy Web to GitHub Pages
-    runs-on: ubuntu-24.04
-    needs: export
-
-    permissions:
-      contents: write
+  export-ios:
+    name: Export (iOS)
+    runs-on: macos-26
 
     steps:
-      - name: Checkout public repo
+      - name: Checkout private source repo
         uses: actions/checkout@v7
-
-      - name: Download web artifact
-        uses: actions/download-artifact@v8
         with:
-          name: web
-          path: build/web
+          repository: ${{ env.REPO_TO_CLONE }}
+          token: ${{ secrets.DEPLOY_TOKEN }}
+          lfs: true
+          path: source
+          fetch-depth: 1
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Cache Godot import folder
+        uses: actions/cache@v6
         with:
-          branch: gh-pages
-          folder: build/web
-          clean: true
+          path: source/.godot/
+          key: >-
+            v2-${{ runner.os }}-godot-${{
+            vars.GODOT_VERSION }}-${{
+            hashFiles(
+              'source/project.godot',
+              'source/export_presets.cfg',
+              'source/**/*.gd',
+              'source/**/*.tres',
+              'source/**/*.tscn',
+              'source/**/*.import'
+            ) }}
+
+      - name: Cache Godot and export templates
+        id: cache-godot
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.GODOT_INSTALL_DIR }}/godot
+            ~/Library/Application Support/Godot/export_templates/${{ vars.GODOT_VERSION }}.stable
+          key: godot-${{ vars.GODOT_VERSION }}
+
+      - name: Setup Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "${{ env.GODOT_INSTALL_DIR }}/godot"
+
+          curl --http1.1 -fL \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 2 \
+            "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=macos.universal.zip&platform=macos.universal" \
+            -o "${{ env.GODOT_INSTALL_DIR }}/godot.zip"
+
+          ditto -x -k "${{ env.GODOT_INSTALL_DIR }}/godot.zip" "${{ env.GODOT_INSTALL_DIR }}/godot"
+
+      - name: Setup export templates
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          curl --http1.1 -fL \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 2 \
+            --continue-at - \
+            "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=export_templates.tpz&platform=templates" \
+            -o "${{ env.GODOT_INSTALL_DIR }}/templates.tpz"
+
+          mkdir -p "${{ env.GODOT_INSTALL_DIR }}/templates"
+          ditto -x -k "${{ env.GODOT_INSTALL_DIR }}/templates.tpz" "${{ env.GODOT_INSTALL_DIR }}/templates"
+
+          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "${{ env.GODOT_INSTALL_DIR }}/templates/templates/." "$TEMPLATE_DIR/"
+
+      - name: Add Godot to PATH
+        run: |
+          mkdir -p "${{ env.GODOT_INSTALL_DIR }}/bin"
+
+          ln -sf \
+            "${{ env.GODOT_INSTALL_DIR }}/godot/Godot.app/Contents/MacOS/Godot" \
+            "${{ env.GODOT_INSTALL_DIR }}/bin/godot"
+
+          echo "${{ env.GODOT_INSTALL_DIR }}/bin" >> "$GITHUB_PATH"
+
+      - name: Build iOS
+        shell: bash
+        run: |
+          mkdir -p build/iOS
+          cd "$PROJECT_PATH"
+
+          set +e
+
+          godot \
+            --headless \
+            --verbose \
+            --export-release \
+            "iOS" \
+            "../build/iOS/Clicks & Points.ipa" \
+            2>&1 | tee "$RUNNER_TEMP/godot-export.log"
+
+          GODOT_EXIT=${PIPESTATUS[0]}
+
+          set -e
+
+          APP="../build/mac/Clicks & Points.ipa"
+          PLIST="$APP/Contents/Info.plist"
+
+          # Make sure Godot actually completed the export.
+          grep -q "\[ DONE \].*export" "$RUNNER_TEMP/godot-export.log"
+
+          # Validate the generated app.
+          test -d "$APP"
+          test -f "$PLIST"
+          plutil -lint "$PLIST"
+
+          EXECUTABLE="$(plutil -extract CFBundleExecutable raw "$PLIST")"
+          test -f "$APP/Contents/MacOS/$EXECUTABLE"
+
+          # Verify the Liquid Glass icon actually got compiled.
+          test -f "$APP/Contents/Resources/Assets.car"
+          plutil -extract CFBundleIconName raw "$PLIST"
+
+          if [ "$GODOT_EXIT" -eq 0 ]; then
+            exit 0
+          fi
+
+          if [ "$GODOT_EXIT" -eq 134 ]; then
+            echo "::warning::Godot 4.7.1 crashed during shutdown after completing and validating the macOS export."
+            exit 0
+          fi
+
+          echo "Godot failed with unexpected exit code $GODOT_EXIT"
+          exit "$GODOT_EXIT"
