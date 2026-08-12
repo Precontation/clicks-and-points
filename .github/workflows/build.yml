@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  GODOT_VERSION: 4.7.1
+  GODOT_VERSION: ${{ vars.GODOT_VERSION }}
   EXPORT_NAME: clicks-and-points
   REPO_TO_CLONE: Precontation/clicks-and-points-source
   PROJECT_PATH: source
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: barichello/godot-ci:4.7.1
+      image: barichello/godot-ci:${{ vars.GODOT_VERSION }}
 
     strategy:
       fail-fast: false
@@ -58,7 +58,7 @@ jobs:
           path: source/.godot/
           key: >-
             v2-${{ runner.os }}-${{ matrix.platform }}-godot-${{
-            env.GODOT_VERSION }}-${{
+            vars.GODOT_VERSION }}-${{
             hashFiles(
               'source/project.godot',
               'source/export_presets.cfg',
@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: barichello/godot-ci:4.7.1
+      image: barichello/godot-ci:${{ vars.GODOT_VERSION }}
 
     steps:
       - name: Install dependencies
@@ -168,7 +168,7 @@ jobs:
           path: source/.godot/
           key: >-
             v2-${{ runner.os }}-mac-godot-${{
-            env.GODOT_VERSION }}-${{
+            vars.GODOT_VERSION }}-${{
             hashFiles(
               'source/project.godot',
               'source/export_presets.cfg',
