@@ -1,4 +1,4 @@
-name: Build Godot project
+name: Build Project
 
 on:
   workflow_dispatch:
