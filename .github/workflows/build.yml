@@ -82,6 +82,24 @@ jobs:
             "/root/.config/godot/." \
             "$HOME/.config/godot/"
 
+      - name: Cache Gradle
+        if: matrix.platform == 'android'
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: >-
+            gradle-${{ runner.os }}-godot-${{
+            vars.GODOT_VERSION }}-${{
+            hashFiles(
+              'source/export_presets.cfg',
+              'source/android/plugins/**/*.aar'
+            ) }}
+          restore-keys: |
+            gradle-${{ runner.os }}-godot-${{ vars.GODOT_VERSION }}-
+            gradle-${{ runner.os }}-
+
       - name: Setup Android SDK
         if: matrix.platform == 'android'
         run: |
