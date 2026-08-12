@@ -5,7 +5,7 @@ on:
 
 env:
   GODOT_VERSION: ${{ vars.GODOT_VERSION }}
-  GODOT_INSTALL_DIR: ${{ github.workspace }}/../godot-${{ vars.GODOT_VERSION }}
+  GODOT_INSTALL_DIR: ${{ github.workspace }}/godot-${{ vars.GODOT_VERSION }}
   EXPORT_NAME: clicks-and-points
   REPO_TO_CLONE: Precontation/clicks-and-points-source
   PROJECT_PATH: source
