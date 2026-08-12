@@ -232,14 +232,6 @@ jobs:
           godot --version
           actool --version
 
-      - name: Import project
-        working-directory: source
-        run: |
-          godot \
-            --headless \
-            --rendering-method gl_compatibility \
-            --import
-
       - name: Build Mac
         run: |
           mkdir -p build/mac
