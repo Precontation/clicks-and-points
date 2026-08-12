@@ -44,7 +44,7 @@ jobs:
           apt-get install -y fontconfig
 
       - name: Checkout private source repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.REPO_TO_CLONE }}
           token: ${{ secrets.DEPLOY_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
           fetch-depth: 1
 
       - name: Cache Godot import folder
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: source/.godot/
           key: >-
@@ -134,7 +134,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}
           path: build/${{ matrix.platform }}
@@ -154,7 +154,7 @@ jobs:
           apt-get install -y fontconfig zip
 
       - name: Checkout private source repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ env.REPO_TO_CLONE }}
           token: ${{ secrets.DEPLOY_TOKEN }}
@@ -163,7 +163,7 @@ jobs:
           fetch-depth: 1
 
       - name: Cache Godot import folder
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: source/.godot/
           key: >-
@@ -230,7 +230,7 @@ jobs:
           zip -qry "Clicks & Points-macOS.zip" "Clicks & Points.app"
 
       - name: Upload Mac artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac
           path: build/mac/Clicks & Points-macOS.zip
@@ -246,10 +246,10 @@ jobs:
 
     steps:
       - name: Checkout public repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download web artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: web
           path: build/web
