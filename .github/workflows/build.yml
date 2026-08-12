@@ -213,7 +213,7 @@ jobs:
       - name: Import project
         working-directory: source
         run: |
-          godot --headless --editor --quit
+          godot --headless --import
 
       - name: Build Mac
         run: |
