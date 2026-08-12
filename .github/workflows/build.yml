@@ -188,18 +188,22 @@ jobs:
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Setup export templates
-        run: |
-          curl -fL \
-            "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=export_templates.tpz&platform=templates" \
-            -o "$RUNNER_TEMP/templates.tpz"
+      run: |
+        curl --http1.1 -fL \
+          --retry 5 \
+          --retry-all-errors \
+          --retry-delay 2 \
+          --continue-at - \
+          "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=export_templates.tpz&platform=templates" \
+          -o "$RUNNER_TEMP/templates.tpz"
 
-          mkdir -p "$RUNNER_TEMP/templates"
-          ditto -x -k "$RUNNER_TEMP/templates.tpz" "$RUNNER_TEMP/templates"
+        mkdir -p "$RUNNER_TEMP/templates"
+        ditto -x -k "$RUNNER_TEMP/templates.tpz" "$RUNNER_TEMP/templates"
 
-          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+        TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
 
-          mkdir -p "$TEMPLATE_DIR"
-          cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
+        mkdir -p "$TEMPLATE_DIR"
+        cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
 
       - name: Setup actool
         run: |
