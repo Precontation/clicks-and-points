@@ -5,6 +5,7 @@ on:
 
 env:
   GODOT_VERSION: ${{ vars.GODOT_VERSION }}
+  GODOT_INSTALL_DIR: ${{ github.workspace }}/../godot-${{ vars.GODOT_VERSION }}
   EXPORT_NAME: clicks-and-points
   REPO_TO_CLONE: Precontation/clicks-and-points-source
   PROJECT_PATH: source
@@ -170,46 +171,63 @@ jobs:
               'source/**/*.import'
             ) }}
 
+      - name: Cache Godot and export templates
+        id: cache-godot
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.GODOT_INSTALL_DIR }}/godot
+            ~/Library/Application Support/Godot/export_templates/${{ vars.GODOT_VERSION }}.stable
+          key: mac-godot-${{ vars.GODOT_VERSION }}
+
       - name: Setup Godot
+        if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
-          mkdir -p "$RUNNER_TEMP/godot"
-          mkdir -p "$RUNNER_TEMP/bin"
+          mkdir -p "${{ env.GODOT_INSTALL_DIR }}/godot"
 
-          curl -fL \
+          curl --http1.1 -fL \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 2 \
             "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=macos.universal.zip&platform=macos.universal" \
-            -o "$RUNNER_TEMP/godot.zip"
+            -o "${{ env.GODOT_INSTALL_DIR }}/godot.zip"
 
-          ditto -x -k "$RUNNER_TEMP/godot.zip" "$RUNNER_TEMP/godot"
-
-          ln -s \
-            "$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot" \
-            "$RUNNER_TEMP/bin/godot"
-
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          ditto -x -k "${{ env.GODOT_INSTALL_DIR }}/godot.zip" "${{ env.GODOT_INSTALL_DIR }}/godot"
 
       - name: Setup export templates
-      run: |
-        curl --http1.1 -fL \
-          --retry 5 \
-          --retry-all-errors \
-          --retry-delay 2 \
-          --continue-at - \
-          "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=export_templates.tpz&platform=templates" \
-          -o "$RUNNER_TEMP/templates.tpz"
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          curl --http1.1 -fL \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 2 \
+            --continue-at - \
+            "https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable&slug=export_templates.tpz&platform=templates" \
+            -o "${{ env.GODOT_INSTALL_DIR }}/templates.tpz"
 
-        mkdir -p "$RUNNER_TEMP/templates"
-        ditto -x -k "$RUNNER_TEMP/templates.tpz" "$RUNNER_TEMP/templates"
+          mkdir -p "${{ env.GODOT_INSTALL_DIR }}/templates"
+          ditto -x -k "${{ env.GODOT_INSTALL_DIR }}/templates.tpz" "${{ env.GODOT_INSTALL_DIR }}/templates"
 
-        TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
+          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
 
-        mkdir -p "$TEMPLATE_DIR"
-        cp -R "$RUNNER_TEMP/templates/templates/." "$TEMPLATE_DIR/"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R "${{ env.GODOT_INSTALL_DIR }}/templates/templates/." "$TEMPLATE_DIR/"
+          
+      - name: Add Godot to PATH
+        run: |
+          mkdir -p "${{ env.GODOT_INSTALL_DIR }}/bin"
+
+          ln -sf \
+            "${{ env.GODOT_INSTALL_DIR }}/godot/Godot.app/Contents/MacOS/Godot" \
+            "${{ env.GODOT_INSTALL_DIR }}/bin/godot"
+
+          echo "${{ env.GODOT_INSTALL_DIR }}/bin" >> "$GITHUB_PATH"
 
       - name: Setup actool
         run: |
           ACTOOL_PATH="$(xcrun --find actool)"
 
-          ln -s "$ACTOOL_PATH" "$RUNNER_TEMP/bin/actool"
+          ln -s "$ACTOOL_PATH" "${{ env.GODOT_INSTALL_DIR }}/bin/actool"
 
           godot --version
           actool --version
