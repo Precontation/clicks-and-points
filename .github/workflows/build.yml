@@ -194,6 +194,38 @@ jobs:
           folder: build/web
           clean: true
 
+  deploy-itch:
+    name: Deploy to itch.io
+    runs-on: ubuntu-24.04
+    needs: [export, export-mac]
+    if: github.ref == 'refs/heads/main'
+
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+      ITCHIO_NAME: ${{ vars.ITCHIO_NAME }}
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: build
+
+      - name: Install butler
+        run: |
+          curl -fL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          echo "$PWD/butler" >> "$GITHUB_PATH"
+
+      - name: Push to itch.io
+        run: |
+          ls -R build
+          butler push build/web "$ITCHIO_NAME:web-stable"
+          butler push build/linux "$ITCHIO_NAME:linux-stable"
+          butler push build/windows "$ITCHIO_NAME:windows-stable"
+          butler push build/android "$ITCHIO_NAME:android-stable"
+          butler push "$(find build -name mac.zip | head -n1)" "$ITCHIO_NAME:mac-stable"
+
   export-mac:
     name: Export (mac)
     runs-on: macos-26
