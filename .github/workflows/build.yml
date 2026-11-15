@@ -543,6 +543,12 @@ jobs:
 
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
+      - name: Cache ShipThis npm downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: npm-shipthis-${{ runner.os }}-${{ runner.arch }}-0.1.62
+
       - name: Build iOS
         shell: bash
         run: |
@@ -575,20 +581,50 @@ jobs:
             exit 1
           fi
 
+          case "$GODOT_EXIT" in
+            0) ;;
+            134)
+              echo "::warning::Godot crashed during shutdown; checking generated project files."
+              ;;
+            *)
+              echo "Godot failed with unexpected exit code $GODOT_EXIT"
+              exit "$GODOT_EXIT"
+              ;;
+          esac
+
+          test -f "../build/iOS/ClicksAndPoints.xcodeproj/project.pbxproj"
+          test -f "../build/iOS/ClicksAndPoints.xcodeproj/xcshareddata/xcschemes/ClicksAndPoints.xcscheme"
+          plutil -lint "../build/iOS/ClicksAndPoints/export_options.plist"
+
+          # Install shipthis to move the apple icon to iOS.
+          # Eventually maybe one day godot will do this itself idk why it doesnt
+          # There's a PR open so fingers crossed
+          npx --yes shipthis@0.1.62 util glass \
+            "../build/iOS/ClicksAndPoints.xcodeproj" \
+            "icons/apple/apple.icon"
+
+          # Build and sign an archive.
+          xcodebuild \
+            -project "../build/iOS/ClicksAndPoints.xcodeproj" \
+            -scheme "ClicksAndPoints" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "../build/iOS/ClicksAndPoints.xcarchive" \
+            archive
+
+          # Package the archive into an IPA.
+          xcodebuild \
+            -exportArchive \
+            -archivePath "../build/iOS/ClicksAndPoints.xcarchive" \
+            -exportOptionsPlist "../build/iOS/ClicksAndPoints/export_options.plist" \
+            -exportPath "../build/iOS"
+
           # An IPA is a ZIP archive containing Payload/<app>.app.
           test -f "$IPA"
           unzip -tq "$IPA"
           unzip -Z1 "$IPA" | grep -Eq '^Payload/[^/]+\.app/Info\.plist$'
 
-          if [ "$GODOT_EXIT" -eq 0 ] || [ "$GODOT_EXIT" -eq 134 ]; then
-            if [ "$GODOT_EXIT" -eq 134 ]; then
-              echo "::warning::Godot 4.7.1 crashed during shutdown after producing a valid iOS IPA."
-            fi
-            exit 0
-          fi
-
-          echo "Godot failed with unexpected exit code $GODOT_EXIT"
-          exit "$GODOT_EXIT"
+          exit 0
 
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v7
