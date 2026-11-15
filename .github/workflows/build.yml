@@ -543,11 +543,10 @@ jobs:
 
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
-      - name: Cache ShipThis npm downloads
-        uses: actions/cache@v6
+      - name: Checkout public workflow repo
+        uses: actions/checkout@v7
         with:
-          path: ~/.npm
-          key: npm-shipthis-${{ runner.os }}-${{ runner.arch }}-0.1.62
+          path: workflow
 
       - name: Build iOS
         shell: bash
@@ -596,10 +595,10 @@ jobs:
           test -f "../build/iOS/ClicksAndPoints.xcodeproj/xcshareddata/xcschemes/ClicksAndPoints.xcscheme"
           plutil -lint "../build/iOS/ClicksAndPoints/export_options.plist"
 
-          # Install shipthis to move the apple icon to iOS.
+          # Run a fully vibecoded python script to move the apple icon to iOS. im sorry guys
           # Eventually maybe one day godot will do this itself idk why it doesnt
           # There's a PR open so fingers crossed
-          npx --yes shipthis@0.1.62 util glass \
+          python3 "$GITHUB_WORKSPACE/workflow/.github/workflows/scripts/apply_ios_icon.py" \
             "../build/iOS/ClicksAndPoints.xcodeproj" \
             "icons/apple/apple.icon"
 
