@@ -403,7 +403,7 @@ jobs:
 
   export-ios:
     name: Export (iOS)
-    runs-on: macos-27
+    runs-on: xcode-27
 
     steps:
       - name: Checkout private source repo
